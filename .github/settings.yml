@@ -1,0 +1,15 @@
+# https://github.com/repository-settings/app
+
+# https://github.com/gitfool/.github/blob/main/.github/settings.yml
+_extends: .github
+
+repository:
+  topics: git, tools, csharp, dotnet
+
+branches:
+  - name: main
+    protection:
+      required_status_checks:
+        contexts:
+          - build
+          - tests
