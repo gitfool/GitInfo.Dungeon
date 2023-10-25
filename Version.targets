@@ -59,4 +59,26 @@
 
     </Target>
 
+    <UsingTask TaskName="Sleep" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+        <ParameterGroup>
+            <Timeout ParameterType="System.Int32" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.Threading" />
+            <Code Type="Fragment" Language="cs">
+                Log.LogMessage(MessageImportance.High, $"Sleeping {Timeout}ms...");
+                Thread.Sleep(Timeout);
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <Target Name="_Sleep"
+        AfterTargets="_GitReadCache">
+
+        <Sleep Condition="'$(MSBuildProjectFile)' == 'Cli.csproj'" Timeout="1" />
+        <Sleep Condition="'$(MSBuildProjectFile)' == 'Library.csproj'" Timeout="1" />
+        <Sleep Condition="'$(MSBuildProjectFile)' == 'Tests.csproj'" Timeout="1000" />
+
+    </Target>
+
 </Project>

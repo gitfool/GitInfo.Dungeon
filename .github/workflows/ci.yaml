@@ -32,4 +32,4 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Cake build
-        run: dotnet tool restore && dotnet cake --verbosity=verbose --publish=true
+        run: ./test-build.ps1
