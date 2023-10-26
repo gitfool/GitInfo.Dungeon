@@ -11,17 +11,15 @@
         AfterTargets="GitInfo"
         Condition="'$(GitBaseVersion)' == '' And '$(GitIgnoreCommitDateVersion)' != 'true'">
 
-        <PropertyGroup Condition="'$(GitCommitDateUtcVersion)' == 'true'">
-            <GitBaseVersion>$([System.DateTimeOffset]::Parse("$(GitCommitDate)").ToUniversalTime().ToString("yyyy.Mdd.Hmm"))</GitBaseVersion>
-            <GitBaseVersionSource>GitCommitDateUtc</GitBaseVersionSource>
-            <GitSemVerSource>CommitDateUtc</GitSemVerSource>
-        </PropertyGroup>
+        <Warning Text="GitCommitDate is not defined."
+            Code="GI008"
+            Condition="'$(GitCommitDate)' == ''" />
 
-        <PropertyGroup Condition="'$(GitCommitDateUtcVersion)' != 'true'">
-            <GitBaseVersion>$([System.DateTimeOffset]::Parse("$(GitCommitDate)").ToString("yyyy.Mdd.Hmm"))</GitBaseVersion>
-            <GitBaseVersionSource>GitCommitDate</GitBaseVersionSource>
-            <GitSemVerSource>CommitDate</GitSemVerSource>
-        </PropertyGroup>
+        <CommitDateToVersion CommitDate="$(GitCommitDate)" AdjustToUtc="$(GitCommitDateUtcVersion)">
+            <Output TaskParameter="Version" PropertyName="GitBaseVersion" />
+            <Output TaskParameter="VersionSource" PropertyName="GitBaseVersionSource" />
+            <Output TaskParameter="SemVerSource" PropertyName="GitSemVerSource" />
+        </CommitDateToVersion>
 
         <Exec Command="$(GitExe) rev-list --count --first-parent $(GitDefaultBranch)..HEAD"
             EchoOff="true"
@@ -59,20 +57,6 @@
 
     </Target>
 
-    <UsingTask TaskName="Sleep" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
-        <ParameterGroup>
-            <Project ParameterType="System.String" Required="true" />
-            <Timeout ParameterType="System.Int32" Required="true" />
-        </ParameterGroup>
-        <Task>
-            <Using Namespace="System.Threading" />
-            <Code Type="Fragment" Language="cs">
-                Log.LogMessage(MessageImportance.High, $"Sleeping {Project} for {Timeout}ms...");
-                Thread.Sleep(Timeout);
-            </Code>
-        </Task>
-    </UsingTask>
-
     <Target Name="_SleepBeforeReadCache"
         BeforeTargets="_GitReadCache"
         Condition="'$(MSBuildProjectFile)' != 'Tests.csproj'">
@@ -88,5 +72,41 @@
         <Sleep Project="$(MSBuildProjectFile)" Timeout="4000" />
 
     </Target>
+
+    <UsingTask TaskName="CommitDateToVersion" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+        <ParameterGroup>
+            <CommitDate ParameterType="System.String" Required="true" />
+            <AdjustToUtc ParameterType="System.Boolean" Required="true" />
+            <Version ParameterType="System.String" Output="true" />
+            <VersionSource ParameterType="System.String" Output="true" />
+            <SemVerSource ParameterType="System.String" Output="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.Globalization" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+                var dto = DateTimeOffset.Parse(CommitDate, null, AdjustToUtc ? DateTimeStyles.AdjustToUniversal : DateTimeStyles.None);
+                var utc = AdjustToUtc ? "Utc" : string.Empty;
+                Version = $"{dto:yyyy.Mdd}.{100 * dto.Hour + dto.Minute}";
+                VersionSource = $"GitCommitDate{utc}";
+                SemVerSource = $"CommitDate{utc}";
+                ]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <UsingTask TaskName="Sleep" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+        <ParameterGroup>
+            <Project ParameterType="System.String" Required="true" />
+            <Timeout ParameterType="System.Int32" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.Threading" />
+            <Code Type="Fragment" Language="cs">
+                Log.LogMessage(MessageImportance.High, $"Sleeping {Project} for {Timeout}ms...");
+                Thread.Sleep(Timeout);
+            </Code>
+        </Task>
+    </UsingTask>
 
 </Project>
