@@ -27,10 +27,10 @@ jobs:
         uses: actions/setup-dotnet@v3.2.0
         with:
           # renovate: datasource=dotnet depName=dotnet-sdk
-          dotnet-version: 7.0.402
+          dotnet-version: 7.0.408
 
       - name: Cache packages
-        uses: actions/cache@v3.3.2
+        uses: actions/cache@v3.3.3
         with:
           path: ${{ env.NUGET_PACKAGES }}
           key: ${{ runner.os }}-nuget-${{ hashFiles('.config/dotnet-tools.json', '**/packages.lock.json') }}
